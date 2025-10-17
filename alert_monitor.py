@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# monitor_full.py
+# alert_monitor.py
+import io
+import sys
 import os
 import json
 import yaml
@@ -12,6 +14,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from tvDatafeed import TvDatafeed, Interval
+
+# 强制 stdout/stderr 使用 UTF-8 编码
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 # ----------------- 读取配置 -----------------
 CFG_FILE = "config.yaml"
@@ -47,6 +53,9 @@ logging.basicConfig(filename=LOG_FILE,
 logger = logging.getLogger(__name__)
 
 # ----------------- tvDatafeed -----------------
+# username = 'YourTradingViewUsername'
+# password = 'YourTradingViewPassword'
+# tv = TvDatafeed(username,password)
 tv = TvDatafeed()
 
 # ----------------- 钉钉 Webhook 读取（优先从环境变量） -----------------
@@ -83,7 +92,7 @@ def get_binance_depth(symbol):
             "mid": mid
         }
     except Exception as e:
-        logger.exception(f"{symbol} 获取深度失败: {e}")
+        logger.exception(f"{symbol} failed to get depth data: {e}")
         return None
 
 def save_symbol_row(symbol, row):
@@ -125,19 +134,19 @@ def compare_and_alert_symbol(symbol, new_row):
             bid_qty_change = (float(new_row["bid1_qty"]) - float(last["bid1_qty"])) / float(last["bid1_qty"])
             if bid_qty_change < -QTY_DROP_RATIO:
                 qty_trigger = True
-                qty_details.append(f"bid1 数量减少 {abs(bid_qty_change):.2%}")
+                qty_details.append(f"bid1 qty reduce {abs(bid_qty_change):.2%}")
     else:
         # bid1价变动 — 也可能是买单撤离或新档位出现，记录为盘口移位情况 below
-        logger.info(f"{symbol} bid1 价格变化: {last['bid1_price']} -> {new_row['bid1_price']}，跳过 bid1 数量直接比较")
+        logger.info(f"{symbol} bid1 price change: {last['bid1_price']} -> {new_row['bid1_price']}，jump bid1 to compare")
 
     if float(new_row["ask1_price"]) == float(last["ask1_price"]):
         if float(last["ask1_qty"]) != 0:
             ask_qty_change = (float(new_row["ask1_qty"]) - float(last["ask1_qty"])) / float(last["ask1_qty"])
             if ask_qty_change < -QTY_DROP_RATIO:
                 qty_trigger = True
-                qty_details.append(f"ask1 数量减少 {abs(ask_qty_change):.2%}")
+                qty_details.append(f"ask1 qty reduce {abs(ask_qty_change):.2%}")
     else:
-        logger.info(f"{symbol} ask1 价格变化: {last['ask1_price']} -> {new_row['ask1_price']}，跳过 ask1 数量直接比较")
+        logger.info(f"{symbol} ask1 price change: {last['ask1_price']} -> {new_row['ask1_price']}，jump ask1 to compare")
 
     # order book shift detection (explicit threshold)
     order_shift = False
@@ -145,11 +154,11 @@ def compare_and_alert_symbol(symbol, new_row):
     # bid1 price drop (last - new >= threshold)
     if float(last["bid1_price"]) - float(new_row["bid1_price"]) >= ORDER_SHIFT_THR:
         order_shift = True
-        shift_reasons.append(f"bid1 下跌 {float(last['bid1_price']) - float(new_row['bid1_price']):.6f}")
+        shift_reasons.append(f"bid1 fall {float(last['bid1_price']) - float(new_row['bid1_price']):.6f}")
     # ask1 price rise (new - last >= threshold)
     if float(new_row["ask1_price"]) - float(last["ask1_price"]) >= ORDER_SHIFT_THR:
         order_shift = True
-        shift_reasons.append(f"ask1 上涨 {float(new_row['ask1_price']) - float(last['ask1_price']):.6f}")
+        shift_reasons.append(f"ask1 rise {float(new_row['ask1_price']) - float(last['ask1_price']):.6f}")
 
     # 保存新行（无论是否报警）
     save_symbol_row(symbol, new_row)
@@ -157,23 +166,23 @@ def compare_and_alert_symbol(symbol, new_row):
     # 汇总触发
     if price_trigger or qty_trigger or order_shift:
         lines = []
-        lines.append(f"【Binance 盘口告警】 {symbol}")
-        lines.append(f"时间(UTC): {new_row['timestamp']}")
-        lines.append(f"当前 mid: {mid_new:.6f}  上次 mid: {mid_last:.6f}  差: {mid_diff:.6f}")
-        lines.append(f"当前 price (ticker): {new_row['price']}")
+        lines.append(f"【Binance alert】 {symbol}")
+        lines.append(f"time(UTC): {new_row['timestamp']}")
+        lines.append(f"current mid: {mid_new:.6f}  last mid: {mid_last:.6f}  diff: {mid_diff:.6f}")
+        lines.append(f"current price (ticker): {new_row['price']}")
 
-        lines.append(f"bid1: price={new_row['bid1_price']} qty={new_row['bid1_qty']}  |  上次 price={last['bid1_price']} qty={last['bid1_qty']}")
-        lines.append(f"ask1: price={new_row['ask1_price']} qty={new_row['ask1_qty']}  |  上次 price={last['ask1_price']} qty={last['ask1_qty']}")
+        lines.append(f"bid1: price={new_row['bid1_price']} qty={new_row['bid1_qty']}  |  last price={last['bid1_price']} qty={last['bid1_qty']}")
+        lines.append(f"ask1: price={new_row['ask1_price']} qty={new_row['ask1_qty']}  |  last price={last['ask1_price']} qty={last['ask1_qty']}")
 
         reasons = []
         if price_trigger:
-            reasons.append(f"价格偏离超过阈值 ({PRICE_DIFF_THRESHOLD})")
+            reasons.append(f"spread exceed threshold ({PRICE_DIFF_THRESHOLD})")
         if qty_trigger:
             reasons += qty_details
         if order_shift:
             reasons += shift_reasons
 
-        lines.append("触发原因: " + "；".join(reasons))
+        lines.append("trigger reason: " + "；".join(reasons))
         return "\n".join(lines)
     return None
 
@@ -192,7 +201,7 @@ def get_gc_and_eur_prices():
 
         return {"gc": gc_price, "eur_tv": eur_tv, "paxg": paxg, "eur_usdt": eur_usdt}
     except Exception as e:
-        logger.exception("获取 GC/EUR/PAXG/EURUSDT 失败: %s", e)
+        logger.exception("get GC/EUR/PAXG/EURUSDT failed: %s", e)
         return None
 
 def save_spread_row(row):
@@ -225,12 +234,12 @@ def check_spreads_and_alert():
 
     reasons = []
     if gc_spread > GOLD_THR:
-        reasons.append(f"PAXG vs GC 价差 {gc_spread:.2%} > {GOLD_THR:.2%} (GC={gc}, PAXG={paxg})")
+        reasons.append(f"PAXG vs GC spread {gc_spread:.2%} > {GOLD_THR:.2%} (GC={gc}, PAXG={paxg})")
     if eur_spread > EUR_THR:
-        reasons.append(f"EURUSDT vs EUR(TV) 价差 {eur_spread:.2%} > {EUR_THR:.2%} (EUR(TV)={eur_tv}, EURUSDT={eur_usdt})")
+        reasons.append(f"EURUSDT vs EUR(TV) spread {eur_spread:.2%} > {EUR_THR:.2%} (EUR(TV)={eur_tv}, EURUSDT={eur_usdt})")
 
     if reasons:
-        lines = ["【跨市场价差告警】", f"时间(UTC): {row['timestamp']}"]
+        lines = ["【spread alert】", f"time(UTC): {row['timestamp']}"]
         lines += reasons
         return "\n".join(lines)
     return None
@@ -257,7 +266,7 @@ def send_ding_image(img_path, text=None):
     payload: {"msgtype":"image","image":{"base64":"...","md5":"..."}}
     """
     if not DING_WEBHOOK:
-        logger.warning("未配置 DING_WEBHOOK，无法发送图片告警")
+        logger.warning("not config DING_WEBHOOK，can not send image alert")
         return False
     try:
         with open(img_path, "rb") as f:
@@ -268,12 +277,12 @@ def send_ding_image(img_path, text=None):
         headers = {"Content-Type": "application/json"}
         r = requests.post(DING_WEBHOOK, data=json.dumps(payload), headers=headers, timeout=15)
         r.raise_for_status()
-        logger.info("钉钉图片告警发送成功")
+        logger.info("dingding image alert success")
         if text:
             send_ding_text(text)
         return True
     except Exception as e:
-        logger.exception("钉钉图片告警发送失败: %s", e)
+        logger.exception("dingding image alert failed: %s", e)
         return False
 
 # ----------------- 报表生成 -----------------
@@ -313,14 +322,14 @@ def generate_daily_report():
         if os.path.exists(spath):
             df_sp = pd.read_csv(spath)
             if not df_sp.empty:
-                key_metrics.append(f"GC spread 最大值: {df_sp['gc_spread'].max():.2%}")
-                key_metrics.append(f"EUR spread 最大值: {df_sp['eur_spread'].max():.2%}")
-                key_metrics.append(f"GC spread 平均值: {df_sp['gc_spread'].mean():.2%}")
-                key_metrics.append(f"EUR spread 平均值: {df_sp['eur_spread'].mean():.2%}")
-        text = "今日关键指标：\n" + ("\n".join(key_metrics) if key_metrics else "无历史价差数据")
+                key_metrics.append(f"GC spread max: {df_sp['gc_spread'].max():.2%}")
+                key_metrics.append(f"EUR spread max: {df_sp['eur_spread'].max():.2%}")
+                key_metrics.append(f"GC spread avg: {df_sp['gc_spread'].mean():.2%}")
+                key_metrics.append(f"EUR spread avg: {df_sp['eur_spread'].mean():.2%}")
+        text = "Today key indicattor：\n" + ("\n".join(key_metrics) if key_metrics else "no historical spread data")
         return fname, text
     except Exception as e:
-        logger.exception("生成日报失败: %s", e)
+        logger.exception("failed to get daily report: %s", e)
         return None, None
 
 # ----------------- 主流程 -----------------
@@ -343,11 +352,11 @@ def main():
 
     # 3) 汇总并发送文本告警（如果有）
     if alerts:
-        msg = "⚠️ 异常告警 - 汇总\n时间(UTC): " + datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + "\n\n" + "\n\n".join(alerts)
+        msg = "⚠️ alert - conclude\ntime(UTC): " + datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + "\n\n" + "\n\n".join(alerts)
         logger.warning(msg)
         send_ding_text(msg)
     else:
-        logger.info(f"{now_str()} - 无异常")
+        logger.info(f"{now_str()} - everything is fine")
 
     # 4) 若为每天指定时间（北京时间），生成日报并发送（可在 CI 中每次都执行，会在时间窗口触发）
     if DAILY_REPORT:

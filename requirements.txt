@@ -1,0 +1,3 @@
+requests
+pandas
+tvdatafeed @ git+https://github.com/Xiangtuo/tvdatafeed.git

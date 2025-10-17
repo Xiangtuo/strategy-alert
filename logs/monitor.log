@@ -1,0 +1,17 @@
+2025-10-17 12:53:30,831 [WARNING] you are using nologin method, data you access may be limited
+2025-10-17 12:53:36,165 [WARNING] \u26a0\ufe0f 异常告警 - 汇总
+时间(UTC): 2025-10-17 04:53:36
+
+【跨市场价差告警】
+时间(UTC): 2025-10-17 04:53:36
+PAXG vs GC 价差 0.94% > 0.50% (GC=4373.1, PAXG=4414.0)
+2025-10-17 12:53:36,169 [WARNING] 未配置 DING_WEBHOOK，无法发送告警
+2025-10-17 12:59:22,150 [WARNING] you are using nologin method, data you access may be limited
+2025-10-17 12:59:25,577 [ERROR] Connection to remote host was lost.
+2025-10-17 12:59:25,579 [ERROR] no data, please check the exchange and symbol
+2025-10-17 12:59:25,579 [ERROR] 获取 GC/EUR/PAXG/EURUSDT 失败: 'NoneType' object has no attribute 'close'
+Traceback (most recent call last):
+  File "D:\Solidy\strategy-alert\alert_monitor.py", line 191, in get_gc_and_eur_prices
+    gc_price = float(df_gc.close.iloc[-1])
+AttributeError: 'NoneType' object has no attribute 'close'
+2025-10-17 12:59:25,582 [INFO] 2025-10-17 04:59:25 (UTC) - 无异常
