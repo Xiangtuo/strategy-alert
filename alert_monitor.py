@@ -376,6 +376,7 @@ def main():
     if sp_alert:
         alerts.append(sp_alert)
 
+    send_ding_text('msg')
     # 3) 汇总并发送文本告警（如果有）
     if alerts:
         msg = "⚠️ alert - conclude\ntime(UTC): " + datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") + "\n\n" + "\n\n".join(alerts)
