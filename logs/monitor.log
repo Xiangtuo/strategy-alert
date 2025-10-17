@@ -15,3 +15,26 @@ Traceback (most recent call last):
     gc_price = float(df_gc.close.iloc[-1])
 AttributeError: 'NoneType' object has no attribute 'close'
 2025-10-17 12:59:25,582 [INFO] 2025-10-17 04:59:25 (UTC) - 无异常
+2025-10-17 14:34:00,750 [WARNING] you are using nologin method, data you access may be limited
+2025-10-17 14:34:03,140 [INFO] USDEUSDT bid1 price change: 0.9993 -> 0.9992，jump bid1 to compare
+2025-10-17 14:34:03,140 [INFO] USDEUSDT ask1 price change: 0.9994 -> 0.9993，jump ask1 to compare
+2025-10-17 14:34:07,294 [WARNING] \u26a0\ufe0f alert - conclude
+time(UTC): 2025-10-17 06:34:07
+
+【spread alert】
+time(UTC): 2025-10-17 06:34:07
+PAXG vs GC spread 0.68% > 0.50% (GC=4372.1, PAXG=4401.84)
+2025-10-17 14:34:07,628 [INFO] 钉钉文本告警发送成功
+2025-10-17 14:52:38,313 [WARNING] you are using nologin method, data you access may be limited
+2025-10-17 14:52:39,608 [INFO] USDCUSDT bid1 price change: 0.9997 -> 0.9998，jump bid1 to compare
+2025-10-17 14:52:39,608 [INFO] USDCUSDT ask1 price change: 0.9998 -> 0.9999，jump ask1 to compare
+2025-10-17 14:52:40,840 [INFO] USDEUSDT bid1 price change: 0.9992 -> 0.9993，jump bid1 to compare
+2025-10-17 14:52:40,840 [INFO] USDEUSDT ask1 price change: 0.9993 -> 0.9994，jump ask1 to compare
+2025-10-17 14:52:42,974 [ERROR] Connection to remote host was lost.
+2025-10-17 14:52:42,974 [ERROR] no data, please check the exchange and symbol
+2025-10-17 14:52:42,974 [ERROR] get GC/EUR/PAXG/EURUSDT failed: 'NoneType' object has no attribute 'close'
+Traceback (most recent call last):
+  File "D:\Solidy\strategy-alert\alert_monitor.py", line 201, in get_gc_and_eur_prices
+    eur_tv = float(df_eur.close.iloc[-1])
+AttributeError: 'NoneType' object has no attribute 'close'
+2025-10-17 14:52:42,975 [INFO] 2025-10-17 06:52:42 (UTC) - everything is fine

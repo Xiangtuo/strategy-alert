@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # alert_monitor.py
+import hmac
+import urllib.parse
 import io
 import sys
 import os
@@ -61,6 +63,7 @@ tv = TvDatafeed()
 # ----------------- 钉钉 Webhook 读取（优先从环境变量） -----------------
 # 推荐在 CI/Actions 中用 secret: DING_WEBHOOK
 DING_WEBHOOK = os.getenv("DING_WEBHOOK") or cfg.get("ding_webhook")
+SECRET = os.getenv("DINGTALK_SECRET") or cfg.get("ding_secret")
 
 # ----------------- 工具函数 -----------------
 def now_str():
@@ -246,18 +249,30 @@ def check_spreads_and_alert():
 
 # ----------------- 钉钉告警（文本 + 图片） -----------------
 def send_ding_text(msg):
-    if not DING_WEBHOOK:
-        logger.warning("未配置 DING_WEBHOOK，无法发送告警")
+    if not DING_WEBHOOK or not SECRET:
+        logger.warning("not config DING_WEBHOOK，can not send alert")
         return False
     headers = {"Content-Type": "application/json"}
     payload = {"msgtype": "text", "text": {"content": msg}}
+
+
+    # 1️⃣ 生成时间戳
+    timestamp = str(round(time.time() * 1000))
+    # 2️⃣ 拼接签名字符串
+    string_to_sign = f"{timestamp}\n{SECRET}"
+    # 3️⃣ 计算 HMAC-SHA256 签名
+    hmac_code = hmac.new(SECRET.encode("utf-8"), string_to_sign.encode("utf-8"), digestmod=hashlib.sha256).digest()
+    # 4️⃣ 进行 Base64 编码 + URL 编码
+    sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+    # 5️⃣ 拼接完整请求 URL
+    signed_url = f"{DING_WEBHOOK}&timestamp={timestamp}&sign={sign}"
     try:
-        r = requests.post(DING_WEBHOOK, data=json.dumps(payload), headers=headers, timeout=10)
+        r = requests.post(signed_url, data=json.dumps(payload), headers=headers, timeout=10)
         r.raise_for_status()
-        logger.info("钉钉文本告警发送成功")
+        logger.info("dingding text alert success")
         return True
     except Exception as e:
-        logger.exception("钉钉文本告警发送失败: %s", e)
+        logger.exception("dingding text alert failed: %s", e)
         return False
 
 def send_ding_image(img_path, text=None):
@@ -265,8 +280,8 @@ def send_ding_image(img_path, text=None):
     钉钉机器人 image 消息需要 base64 + md5(image_binary)
     payload: {"msgtype":"image","image":{"base64":"...","md5":"..."}}
     """
-    if not DING_WEBHOOK:
-        logger.warning("not config DING_WEBHOOK，can not send image alert")
+    if not DING_WEBHOOK or not SECRET:
+        logger.warning("not config DING_WEBHOOK，can not send alert")
         return False
     try:
         with open(img_path, "rb") as f:
@@ -275,7 +290,18 @@ def send_ding_image(img_path, text=None):
         md5_hex = hashlib.md5(img_bin).hexdigest()
         payload = {"msgtype": "image", "image": {"base64": b64, "md5": md5_hex}}
         headers = {"Content-Type": "application/json"}
-        r = requests.post(DING_WEBHOOK, data=json.dumps(payload), headers=headers, timeout=15)
+
+        # 1️⃣ 生成时间戳
+        timestamp = str(round(time.time() * 1000))
+        # 2️⃣ 拼接签名字符串
+        string_to_sign = f"{timestamp}\n{SECRET}"
+        # 3️⃣ 计算 HMAC-SHA256 签名
+        hmac_code = hmac.new(SECRET.encode("utf-8"), string_to_sign.encode("utf-8"), digestmod=hashlib.sha256).digest()
+        # 4️⃣ 进行 Base64 编码 + URL 编码
+        sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+        # 5️⃣ 拼接完整请求 URL
+        signed_url = f"{DING_WEBHOOK}&timestamp={timestamp}&sign={sign}"
+        r = requests.post(signed_url, data=json.dumps(payload), headers=headers, timeout=15)
         r.raise_for_status()
         logger.info("dingding image alert success")
         if text:
