@@ -24,7 +24,7 @@ jobs:
 
       - name: Run monitor
         env:
-          DING_WEBHOOK: ${{ secrets.DING_WEBHOOK }}
+          DING_WEBHOOK: ${{ secrets.DINGDING_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         run: |
           python alert_monitor.py
