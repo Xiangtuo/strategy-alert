@@ -62,3 +62,6 @@ time(UTC): 2025-10-17 07:12:22
 time(UTC): 2025-10-17 07:12:21
 PAXG vs GC spread 0.96% > 0.50% (GC=4371.6, PAXG=4413.71)
 2025-10-17 15:12:22,183 [INFO] dingding text alert success
+2025-10-17 15:57:40,514 [INFO] USDCUSDT bid1 price change: 0.9999 -> 0.9998£¬jump bid1 to compare
+2025-10-17 15:57:40,515 [INFO] USDCUSDT ask1 price change: 1.0 -> 0.9999£¬jump ask1 to compare
+2025-10-17 15:57:48,756 [INFO] 2025-10-17 07:57:48 (UTC) - everything is fine
