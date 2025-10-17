@@ -1,0 +1,19 @@
+# config.yaml
+binance:
+  symbols: ["USDCUSDT", "USDEUSDT"]   # 监控币对（按 Binance symbol）
+  price_diff_threshold: 0.0002       # mid 价偏离阈值
+  qty_drop_ratio: 0.5                # 数量骤减比例（50%）
+  order_shift_threshold: 0.0001      # bid1下跌或ask1上涨达到此值即视为盘口移位
+
+spread_check:
+  gold_threshold: 0.005   # PAXG vs GC! 价差阈值（0.5%）
+  eur_threshold: 0.005    # EURI vs EUR 价差阈值（0.5%）
+  tv_gc_symbol: "GC1!"    # tvdatafeed 用的 symbol
+  tv_eur_symbol: "EURUSD"
+
+general:
+  data_dir: "./data"
+  logs_dir: "./logs"
+  reports_dir: "./reports"
+  daily_report: true
+  daily_report_time_utc8: "08:00"  # 每日生成日报的目标时间（北京时间）
