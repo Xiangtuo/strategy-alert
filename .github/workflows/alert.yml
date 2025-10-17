@@ -26,5 +26,7 @@ jobs:
         env:
           DING_WEBHOOK: ${{ secrets.DINGDING_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          TV_USERNAME: ${{ secrets.TV_USERNAME }}
+          TV_PASSWORD: ${{ secrets.TV_PASSWORD }}
         run: |
           python alert_monitor.py

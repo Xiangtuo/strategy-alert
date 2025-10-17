@@ -55,10 +55,10 @@ logging.basicConfig(filename=LOG_FILE,
 logger = logging.getLogger(__name__)
 
 # ----------------- tvDatafeed -----------------
-# username = 'YourTradingViewUsername'
-# password = 'YourTradingViewPassword'
-# tv = TvDatafeed(username,password)
-tv = TvDatafeed()
+TV_USERNAME = os.getenv("TV_USERNAME") or cfg.get("TV_USERNAME")
+TV_PASSWORD = os.getenv("TV_PASSWORD") or cfg.get("TV_PASSWORD")
+tv = TvDatafeed(username = TV_USERNAME,password=TV_PASSWORD)
+# tv = TvDatafeed()
 
 # ----------------- 钉钉 Webhook 读取（优先从环境变量） -----------------
 # 推荐在 CI/Actions 中用 secret: DING_WEBHOOK
